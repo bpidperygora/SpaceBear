@@ -196,10 +196,8 @@ export class Enemy {
 
     handleGameOver() {
         this.gameStarted = false;
-        // Stop the game ticker
-        this.app.ticker.stop();
         
-        // Clear all asteroids
+        // Clear all asteroids first
         this.asteroids.forEach(asteroid => asteroid.destroy());
         this.asteroids = [];
         
@@ -207,8 +205,11 @@ export class Enemy {
         this.nextShootTime = 0;
         this.initialShot = true;
         
-        // Dispatch game-over event instead of showing screen directly
+        // Dispatch game-over event
         window.dispatchEvent(new CustomEvent('game-over'));
+        
+        // Stop the game ticker last
+        this.app.ticker.stop();
     }
 
     destroy() {
@@ -225,6 +226,8 @@ export class Enemy {
 
     // Add collision detection method
     checkCollision(asteroid, hero) {
+        if (!hero.sprite || !asteroid.sprite) return false; // Add null checks
+        
         const dx = asteroid.sprite.x - hero.sprite.x;
         const dy = asteroid.sprite.y - hero.sprite.y;
         const distance = Math.sqrt(dx * dx + dy * dy);

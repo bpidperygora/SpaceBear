@@ -192,33 +192,64 @@ class Game {
         // Create a starfield background
         const stars = new PIXI.Container();
         
-        // Create multiple layers of stars for parallax effect
+        // Add dark background
+        const background = new PIXI.Graphics();
+        background.fill({ color: 0x000033, alpha: 1 })
+                 .rect(0, 0, this.app.screen.width, this.app.screen.height);
+        stars.addChild(background);
+
+        // Create star container
+        const starsGraphics = new PIXI.Graphics();
+        stars.addChild(starsGraphics);
+
+        // Create initial stars
+        const starPoints = [];
         for (let i = 0; i < 200; i++) {
-            const star = new PIXI.Graphics();
-            const size = Math.random() * 2 + 1;
-            const alpha = Math.random() * 0.5 + 0.5;
-            
-            star.fill({ color: 0xFFFFFF, alpha })
-                .circle(0, 0, size);
-            
-            star.x = Math.random() * this.app.screen.width;
-            star.y = Math.random() * this.app.screen.height;
-            
-            stars.addChild(star);
+            starPoints.push({
+                x: Math.random() * this.app.screen.width,
+                y: Math.random() * this.app.screen.height,
+                size: Math.random() * 2,
+                speed: (Math.random() * 2) + 1,
+                alpha: Math.random() * 0.5 + 0.5
+            });
         }
 
-        // Set the background color to dark space
-        this.app.renderer.background.color = 0x000033;
+        // Add nebula effect
+        const nebula = new PIXI.Graphics();
+        for (let i = 0; i < 5; i++) {
+            const x = Math.random() * this.app.screen.width;
+            const y = Math.random() * this.app.screen.height;
+            const radius = 100 + Math.random() * 150;
+            const color = [0x4400ff, 0xff00ff, 0x00ffff][Math.floor(Math.random() * 3)];
+            
+            nebula.fill({ color, alpha: 0.1 })
+                 .circle(x, y, radius);
+        }
+        stars.addChild(nebula);
         
         // Add stars behind everything else
         stars.zIndex = -1;
         this.app.stage.sortableChildren = true;
         this.app.stage.addChild(stars);
         
-        // Optional: Add subtle animation to stars
+        // Animate stars
         this.app.ticker.add(() => {
-            stars.children.forEach(star => {
-                star.alpha = 0.3 + Math.sin(Date.now() * 0.001 + star.x) * 0.2;
+            starsGraphics.clear();
+            
+            starPoints.forEach(star => {
+                // Move star down
+                star.y += star.speed;
+                
+                // Reset star position when it goes off screen
+                if (star.y > this.app.screen.height) {
+                    star.y = -5;
+                    star.x = Math.random() * this.app.screen.width;
+                }
+                
+                // Draw star with current position and twinkle effect
+                const twinkle = 0.3 + Math.sin(Date.now() * 0.001 + star.x) * 0.2;
+                starsGraphics.fill({ color: 0xFFFFFF, alpha: star.alpha * twinkle })
+                            .circle(star.x, star.y, star.size);
             });
         });
     }

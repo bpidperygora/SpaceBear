@@ -142,23 +142,35 @@ export class Hero {
         if (this.trail) {
             this.trail.destroy();
         }
-        this.sprite.destroy();
+        if (this.sprite) {
+            this.sprite.destroy();
+            this.sprite = null; // Ensure sprite reference is cleared
+        }
     }
 
     onGameOver() {
+        if (!this.sprite) return; // Add check for sprite existence
+        
         // Flash effect
         this.hitFlash = true;
         this.sprite.tint = 0xFF0000; // Red tint
         
-        // Create explosion effect
-        this.createExplosion();
+        // Create explosion effect and store last position
+        const lastX = this.sprite.x;
+        const lastY = this.sprite.y;
         
         // Stop movement
         this.stopAnimation();
         
+        // Create explosion at last known position
+        new ExplosionEffect(this.app, lastX, lastY, {
+            scale: 0.5,
+            speed: 0.75
+        });
+        
         // Play death sound if available
         if (this.soundManager) {
-            this.soundManager.play('bounce'); // Reuse bounce sound or add new death sound
+            this.soundManager.play('bounce');
         }
     }
 

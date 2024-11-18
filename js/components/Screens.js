@@ -19,45 +19,14 @@ export class Screens {
         overlay.zIndex = 1000; // Ensure overlay is on top
         this.app.stage.addChild(overlay);
 
-        // Add dark semi-transparent space background
+        // Add dark semi-transparent overlay to hide game elements
         const background = new PIXI.Graphics();
-        background.fill({ color: 0x000000, alpha: 0.85 })
-                 .rect(0, 0, this.app.screen.width, this.app.screen.height);
+        background.fill({ color: 0x000000, alpha: 0.85 }) // Semi-transparent black
+            .rect(0, 0, this.app.screen.width, this.app.screen.height);
         overlay.addChild(background);
 
-        // Add stars to enhance space theme
-        const stars = new PIXI.Graphics();
-        for (let i = 0; i < 100; i++) {
-            const starSize = Math.random() * 2;
-            const x = Math.random() * this.app.screen.width;
-            const y = Math.random() * this.app.screen.height;
-            const alpha = Math.random() * 0.5 + 0.5;
-
-            stars.fill({ color: 0xFFFFFF, alpha })
-                 .circle(x, y, starSize);
-        }
-        overlay.addChild(stars);
-
-        // Add nebula effect
-        const nebula = new PIXI.Graphics();
-        for (let i = 0; i < 5; i++) {
-            const x = Math.random() * this.app.screen.width;
-            const y = Math.random() * this.app.screen.height;
-            const radius = 100 + Math.random() * 150;
-            const color = [0x4400ff, 0xff00ff, 0x00ffff][Math.floor(Math.random() * 3)];
-            
-            nebula.fill({ color, alpha: 0.1 })
-                  .circle(x, y, radius);
-        }
-        overlay.addChild(nebula);
-
-        // Add animated star twinkle effect
-        this.app.ticker.add(() => {
-            stars.children.forEach(star => {
-                star.alpha = 0.3 + Math.sin(Date.now() * 0.001 + star.x) * 0.2;
-            });
-        });
-
+        console.log(overlay);
+        
         return overlay;
     }
 
@@ -67,9 +36,23 @@ export class Screens {
     showStartScreen() {
         const overlay = this.createOverlay();
 
+        // Add dark rectangle behind text and button
+        const textBg = new PIXI.Graphics();
+
+        textBg.fill({ color: 0x000000, alpha: 1 }) // More opaque background
+            .roundRect(
+                this.app.screen.width / 2 - 200, // Wider rectangle
+                this.app.screen.height / 2 - 150, // Higher up
+                400, // Wider
+                250, // Taller
+                20
+            );
+
+        overlay.addChild(textBg);
+
         // Create "Click to Start Game" text with glow effect
-        const startText = new PIXI.Text({ 
-            text: 'Click to Start Game', 
+        const startText = new PIXI.Text({
+            text: 'Click to Start Game',
             style: {
                 fontFamily: 'Arial',
                 fontSize: 48,
@@ -86,7 +69,7 @@ export class Screens {
         startText.position.set(this.app.screen.width / 2, this.app.screen.height / 2 - 50);
         overlay.addChild(startText);
 
-        // Create Start button with space theme
+        // Create Start button
         const startButton = this.createButton('Start Game', this.app.screen.width / 2, this.app.screen.height / 2 + 50, () => {
             this.hideCurrentScreen();
             this.game.startGame();
@@ -102,9 +85,21 @@ export class Screens {
     showGameOverScreen() {
         const overlay = this.createOverlay();
 
+        // Add dark rectangle behind text and button
+        const textBg = new PIXI.Graphics();
+        textBg.fill(0x000000, 1) // More opaque background
+            .roundRect(
+                this.app.screen.width / 2 - 200, // Wider rectangle
+                this.app.screen.height / 2 - 150, // Higher up
+                400, // Wider
+                250, // Taller
+                20
+            );
+        overlay.addChild(textBg);
+
         // Create "Game Over!" text with glow effect
-        const gameOverText = new PIXI.Text({ 
-            text: 'Game Over!', 
+        const gameOverText = new PIXI.Text({
+            text: 'Game Over!',
             style: {
                 fontFamily: 'Arial',
                 fontSize: 64,
@@ -143,21 +138,21 @@ export class Screens {
 
         // Create button background with gradient effect
         const buttonBg = new PIXI.Graphics();
-        
+
         // Main button shape with fill and stroke
         buttonBg.fill({ color: 0x4400ff, alpha: 0.8 })
-                .roundRect(-120, -30, 240, 60, 15)
-                .stroke({ width: 2, color: 0x6622ff, alpha: 1 });
-        
+            .roundRect(-120, -30, 240, 60, 15)
+            .stroke({ width: 2, color: 0x6622ff, alpha: 1 });
+
         // Add inner glow
         const innerGlow = new PIXI.Graphics();
         innerGlow.fill({ color: 0x6622ff, alpha: 0.4 })
-                 .roundRect(-115, -25, 230, 50, 12);
-        
+            .roundRect(-115, -25, 230, 50, 12);
+
         // Add outer glow
         const outerGlow = new PIXI.Graphics();
         outerGlow.fill({ color: 0x4400ff, alpha: 0.2 })
-                 .roundRect(-125, -35, 250, 70, 18);
+            .roundRect(-125, -35, 250, 70, 18);
 
         // Add all layers to button
         button.addChild(outerGlow);
@@ -165,8 +160,8 @@ export class Screens {
         button.addChild(innerGlow);
 
         // Button text with enhanced glow
-        const buttonText = new PIXI.Text({ 
-            text: text, 
+        const buttonText = new PIXI.Text({
+            text: text,
             style: {
                 fontFamily: 'Arial',
                 fontSize: 28,
@@ -187,36 +182,36 @@ export class Screens {
         // Enhanced hover effects
         button.on('pointerover', () => {
             buttonBg.clear()
-                   .fill({ color: 0x6622ff, alpha: 0.9 })
-                   .roundRect(-120, -30, 240, 60, 15)
-                   .stroke({ width: 2, color: 0x8844ff, alpha: 1 });
-            
+                .fill({ color: 0x6622ff, alpha: 0.9 })
+                .roundRect(-120, -30, 240, 60, 15)
+                .stroke({ width: 2, color: 0x8844ff, alpha: 1 });
+
             innerGlow.clear()
-                    .fill({ color: 0x8844ff, alpha: 0.5 })
-                    .roundRect(-115, -25, 230, 50, 12);
-            
+                .fill({ color: 0x8844ff, alpha: 0.5 })
+                .roundRect(-115, -25, 230, 50, 12);
+
             outerGlow.clear()
-                    .fill({ color: 0x6622ff, alpha: 0.3 })
-                    .roundRect(-125, -35, 250, 70, 18);
-            
+                .fill({ color: 0x6622ff, alpha: 0.3 })
+                .roundRect(-125, -35, 250, 70, 18);
+
             button.scale.set(1.05);
             buttonText.style.dropShadowDistance = 10;
         });
 
         button.on('pointerout', () => {
             buttonBg.clear()
-                   .fill({ color: 0x4400ff, alpha: 0.8 })
-                   .roundRect(-120, -30, 240, 60, 15)
-                   .stroke({ width: 2, color: 0x6622ff, alpha: 1 });
-            
+                .fill({ color: 0x4400ff, alpha: 0.8 })
+                .roundRect(-120, -30, 240, 60, 15)
+                .stroke({ width: 2, color: 0x6622ff, alpha: 1 });
+
             innerGlow.clear()
-                    .fill({ color: 0x6622ff, alpha: 0.4 })
-                    .roundRect(-115, -25, 230, 50, 12);
-            
+                .fill({ color: 0x6622ff, alpha: 0.4 })
+                .roundRect(-115, -25, 230, 50, 12);
+
             outerGlow.clear()
-                    .fill({ color: 0x4400ff, alpha: 0.2 })
-                    .roundRect(-125, -35, 250, 70, 18);
-            
+                .fill({ color: 0x4400ff, alpha: 0.2 })
+                .roundRect(-125, -35, 250, 70, 18);
+
             button.scale.set(1.0);
             buttonText.style.dropShadowDistance = 8;
         });
