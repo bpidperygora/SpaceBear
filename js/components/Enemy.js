@@ -1,5 +1,4 @@
 import { Asteroid } from './Asteroid.js';
-import { GameOverScreen } from './GameOverScreen.js';
 
 /**
  * Class representing an evil flaming bear that tracks the target
@@ -9,6 +8,7 @@ export class Enemy {
     constructor(app, texture, x, y, target, game) {
         this.app = app;
         this.target = target;
+        this.game = game;
         
         this.container = new PIXI.Container();
         this.container.x = x;
@@ -56,9 +56,6 @@ export class Enemy {
         this.app.ticker.add(this.boundTrack);
         
         console.log('Enemy constructed, waiting for game-started event');
-        
-        // Create game over screen with game reference
-        this.gameOverScreen = new GameOverScreen(app, game);
     }
 
     createSimpleFlames() {
@@ -210,8 +207,8 @@ export class Enemy {
         this.nextShootTime = 0;
         this.initialShot = true;
         
-        // Show game over screen
-        this.gameOverScreen.show();
+        // Dispatch game-over event instead of showing screen directly
+        window.dispatchEvent(new CustomEvent('game-over'));
     }
 
     destroy() {
@@ -224,10 +221,6 @@ export class Enemy {
         // Clear all asteroids
         this.asteroids.forEach(asteroid => asteroid.destroy());
         this.asteroids = [];
-        
-        if (this.gameOverScreen) {
-            this.gameOverScreen.destroy();
-        }
     }
 
     // Add collision detection method

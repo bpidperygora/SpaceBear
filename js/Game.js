@@ -2,6 +2,7 @@ import { Controls } from './components/Controls.js';
 import { Enemy } from './components/Enemy.js';
 import { Hero } from './components/Hero.js';
 import { BoostSystem } from './components/BoostSystem.js';
+import { Screens } from './components/Screens.js';
 
 class Game {
     constructor() {
@@ -9,6 +10,7 @@ class Game {
         this.paused = true;
         this.gameOver = false;
         this.controls = null;
+        this.screens = null;
         this.initGame();
         this.initGameOverHandler();
     }
@@ -21,57 +23,8 @@ class Game {
             // Stop the game
             this.app.ticker.stop();
             
-            // Create game over overlay
-            const overlay = document.createElement('div');
-            overlay.style.cssText = `
-                position: fixed;
-                top: 0;
-                left: 0;
-                width: 100%;
-                height: 100%;
-                background: rgba(0, 0, 0, 0.8);
-                display: flex;
-                flex-direction: column;
-                justify-content: center;
-                align-items: center;
-                z-index: 2000;
-                color: white;
-                font-family: Arial, sans-serif;
-            `;
-
-            const gameOverText = document.createElement('h1');
-            gameOverText.textContent = 'Game Over!';
-            gameOverText.style.marginBottom = '20px';
-
-            const restartButton = document.createElement('button');
-            restartButton.textContent = 'Restart Game';
-            restartButton.style.cssText = `
-                padding: 15px 30px;
-                font-size: 18px;
-                background: #4CAF50;
-                border: none;
-                border-radius: 5px;
-                color: white;
-                cursor: pointer;
-                transition: background 0.3s;
-            `;
-
-            restartButton.addEventListener('mouseover', () => {
-                restartButton.style.background = '#45a049';
-            });
-
-            restartButton.addEventListener('mouseout', () => {
-                restartButton.style.background = '#4CAF50';
-            });
-
-            restartButton.addEventListener('click', () => {
-                this.restartGame();
-                overlay.remove();
-            });
-
-            overlay.appendChild(gameOverText);
-            overlay.appendChild(restartButton);
-            document.body.appendChild(overlay);
+            // Show game over screen
+            this.screens.showGameOverScreen();
         });
     }
 
@@ -120,27 +73,30 @@ class Game {
 
     async initGame() {
         try {
+            // Create application instance without options
             this.app = new PIXI.Application();
             
-            const width = Math.max(640, window.innerWidth);
-            const height = Math.max(360, window.innerHeight);
-            
+            // Initialize with options using init()
             await this.app.init({ 
-                width: width,
-                height: height,
-                resizeTo: window
+                width: Math.max(640, window.innerWidth),
+                height: Math.max(360, window.innerHeight),
+                resizeTo: window,
+                backgroundColor: 0x000033,
             });
-
+            
             // Create space background after app is initialized
             this.createSpaceBackground();
 
             // Initialize controls without start overlay
             this.controls = new Controls(this.app, false);
 
-            // Create our own start overlay
-            this.createStartOverlay();
+            // Initialize screens
+            this.screens = new Screens(this.app, this);
 
-            this.app.renderer.resize(width, height);
+            // Show start screen instead of creating it directly
+            this.screens.showStartScreen();
+
+            this.app.renderer.resize(Math.max(640, window.innerWidth), Math.max(360, window.innerHeight));
 
             window.addEventListener('resize', () => {
                 const newWidth = Math.max(640, window.innerWidth);
@@ -230,52 +186,6 @@ class Game {
         this.app.ticker.start();
         // This is the ONLY place we should dispatch game-started
         window.dispatchEvent(new CustomEvent('game-started'));
-    }
-
-    // Add this method to handle the click to start
-    handleStartClick() {
-        if (this.paused) {
-            this.paused = false;
-            this.app.ticker.start();
-            window.dispatchEvent(new CustomEvent('game-started'));
-        }
-    }
-
-    // Add this new method
-    createStartOverlay() {
-        const overlay = document.createElement('div');
-        overlay.style.cssText = `
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0, 0, 0, 0.8);
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            z-index: 1000;
-        `;
-
-        const button = document.createElement('button');
-        button.textContent = 'Click to Start Game';
-        button.style.cssText = `
-            padding: 20px 40px;
-            font-size: 24px;
-            border: none;
-            border-radius: 8px;
-            background: #4CAF50;
-            color: white;
-            cursor: pointer;
-        `;
-
-        button.addEventListener('click', () => {
-            overlay.remove();
-            this.startGame();
-        });
-
-        overlay.appendChild(button);
-        document.body.appendChild(overlay);
     }
 
     createSpaceBackground() {
