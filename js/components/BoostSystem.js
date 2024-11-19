@@ -36,20 +36,83 @@ export class BoostSystem {
     };
 
     constructor() {
-        const config = BoostSystem.BOOST_CONFIG;
-        
-        this.normalSpeed = config.NORMAL_SPEED;
-        this.boostSpeed = config.BOOST_SPEED;
-        this.superBoostSpeed = config.SUPER_BOOST_SPEED;
-        this.fuelLevel = config.MAX_FUEL;
-        this.maxFuel = config.MAX_FUEL;
-        this.superBoostActive = false;
+        // Initialize properties
+        this.fuelLevel = BoostSystem.BOOST_CONFIG.MAX_FUEL;
         this.lastSpacePress = 0;
+        this.superBoostActive = false;
+        this.spacePressed = false;
         this.boostAvailable = true;
-        this.isBoostActive = false;
-        
+        this.maxFuel = BoostSystem.BOOST_CONFIG.MAX_FUEL;
+        this.normalSpeed = BoostSystem.BOOST_CONFIG.NORMAL_SPEED;
+        this.boostSpeed = BoostSystem.BOOST_CONFIG.BOOST_SPEED;
+        this.superBoostSpeed = BoostSystem.BOOST_CONFIG.SUPER_BOOST_SPEED;
+
+        // Bind event handlers
+        this.handleKeyDown = this.handleKeyDown.bind(this);
+        this.handleKeyUp = this.handleKeyUp.bind(this);
+
+        // Create UI and initialize controls
         this.createBoostUI();
         this.initializeControls();
+    }
+
+    initializeControls() {
+        // Remove any existing listeners
+        document.removeEventListener('keydown', this.handleKeyDown);
+        document.removeEventListener('keyup', this.handleKeyUp);
+        
+        // Add new listeners with bound handlers
+        document.addEventListener('keydown', this.handleKeyDown);
+        document.addEventListener('keyup', this.handleKeyUp);
+    }
+
+    handleKeyDown(e) {
+        if (e.code === 'Space' && !e.repeat) {
+            this.spacePressed = true;
+            const currentTime = Date.now();
+            const timeDiff = currentTime - this.lastSpacePress;
+            
+            if (timeDiff < BoostSystem.BOOST_CONFIG.DOUBLE_TAP_THRESHOLD) {
+                this.activateSuperBoost();
+            } else if (this.fuelLevel > BoostSystem.BOOST_CONFIG.LOW_FUEL_THRESHOLD) {
+                this.toggleBoost(true);
+            }
+            
+            this.lastSpacePress = currentTime;
+        }
+    }
+
+    handleKeyUp(e) {
+        if (e.code === 'Space') {
+            this.spacePressed = false;
+            if (this.superBoostActive) {
+                this.endSuperBoost();
+            } else {
+                this.toggleBoost(false);
+            }
+        }
+    }
+
+    destroy() {
+        // Remove event listeners
+        document.removeEventListener('keydown', this.handleKeyDown);
+        document.removeEventListener('keyup', this.handleKeyUp);
+        
+        // Remove UI elements
+        if (this.fuelIndicator?.parentElement) {
+            this.fuelIndicator.parentElement.remove();
+        }
+        
+        // Clear any timers
+        if (this.superBoostTimer) {
+            clearTimeout(this.superBoostTimer);
+        }
+        if (this.fuelRecoveryInterval) {
+            clearInterval(this.fuelRecoveryInterval);
+        }
+        if (this.rechargeInterval) {
+            clearInterval(this.rechargeInterval);
+        }
     }
 
     createBoostUI() {
@@ -77,37 +140,6 @@ export class BoostSystem {
 
         boostBar.appendChild(this.fuelIndicator);
         document.body.appendChild(boostBar);
-    }
-
-    initializeControls() {
-        this.spacePressed = false;
-        
-        document.addEventListener('keydown', (e) => {
-            if (e.code === 'Space' && !e.repeat) {
-                this.spacePressed = true;
-                const currentTime = Date.now();
-                const timeDiff = currentTime - this.lastSpacePress;
-                
-                if (timeDiff < 300) { // Double space detected
-                    this.activateSuperBoost();
-                } else if (this.fuelLevel > BoostSystem.BOOST_CONFIG.LOW_FUEL_THRESHOLD) {
-                    this.toggleBoost(true);
-                }
-                
-                this.lastSpacePress = currentTime;
-            }
-        });
-
-        document.addEventListener('keyup', (e) => {
-            if (e.code === 'Space') {
-                this.spacePressed = false;
-                if (this.superBoostActive) {
-                    this.endSuperBoost();
-                } else {
-                    this.toggleBoost(false);
-                }
-            }
-        });
     }
 
     activateSuperBoost() {

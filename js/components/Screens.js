@@ -1,110 +1,129 @@
+import { GameState } from './GameState.js';
+
 /**
  * Class managing all game screens (start, game over, etc.) using PIXI.js v8
  * @class Screens
  */
 export class Screens {
-    constructor(app, game) {
+    constructor(app, gameState) {
         this.app = app;
-        this.game = game;
+        this.gameState = gameState;
         this.currentScreen = null;
+        this.cachedScreens = new Map();
     }
 
     /**
-     * Creates a base overlay container with common styles and space-themed stars
-     * @private
-     * @returns {PIXI.Container} The overlay container
+     * Preload all screen assets and cache screens
+     */
+    async preloadAssets() {
+        console.log('Preloading screen assets...');
+
+        try {
+            // Create and cache start screen
+            const startScreen = await this.createStartScreen();
+            this.cachedScreens.set('start', startScreen);
+            console.log('Start screen cached');
+
+            // Create and cache game over screen
+            const gameOverScreen = await this.createGameOverScreen();
+            this.cachedScreens.set('gameOver', gameOverScreen);
+            console.log('Game over screen cached');
+
+        } catch (error) {
+            console.error('Error preloading screen assets:', error);
+        }
+    }
+
+    /**
+     * Creates a base overlay container with common styles
      */
     createOverlay() {
         const overlay = new PIXI.Container();
-        overlay.sortableChildren = true;
-        overlay.zIndex = 1000;
-        this.app.stage.addChild(overlay);
 
-        // Add dark semi-transparent overlay to hide game elements
-        const background = new PIXI.Graphics();
-        background
-            .fill({ color: 0x000000, alpha: 0.85 })
-            .rect(0, 0, this.app.screen.width, this.app.screen.height);
-        background.zIndex = 0;
+        // Add semi-transparent background using correct PIXI v8 syntax
+        const background = new PIXI.Graphics()
+            .rect(0, 0, this.app.screen.width, this.app.screen.height)
+            .fill({ color: 0x000000, alpha: 0.7 });
+
         overlay.addChild(background);
+        overlay.zIndex = 1000;
+        this.app.stage.sortableChildren = true;
 
-        console.log(overlay);
-        
         return overlay;
     }
 
     /**
-     * Creates and shows the start screen using PIXI.js
+     * Creates the start screen container
      */
-    showStartScreen() {
+    async createStartScreen() {
+        console.log('Creating start screen...');
         const overlay = this.createOverlay();
 
-        // Add dark rectangle behind text and button
-        const textBg = new PIXI.Graphics();
-        
-        // Draw rectangle with fill and stroke
-        textBg.rect(
-            this.app.screen.width / 2 - 200,
-            this.app.screen.height / 2 - 150,
-            400,
-            250
-        );
-        textBg.fill({ color: 0x000000, alpha: 0.6 });  // Black with 0.6 alpha
-        textBg.stroke(4, 0x4400ff);  // Blue stroke, 4px width
+        // Add decorative background rectangle with correct order
+        const bgRect = new PIXI.Graphics()
+            .rect(
+                this.app.screen.width / 2 - 250,
+                this.app.screen.height / 2 - 200,
+                500,
+                400
+            )
+            .fill({ color: 0x000033, alpha: 0.8 })
+            .stroke({ color: 0x4400ff, width: 4, alpha: 1 });
 
-        overlay.addChild(textBg);
+        overlay.addChild(bgRect);
 
-        // Create "Click to Start Game" text with glow effect
-        const startText = new PIXI.Text({
-            text: 'Click to Start Game',
+        // Add title text
+        const titleText = new PIXI.Text({
+            text: 'Space Game',
             style: {
                 fontFamily: 'Arial',
-                fontSize: 48,
+                fontSize: 64,
                 fill: 0xFFFFFF,
                 align: 'center',
                 dropShadow: true,
                 dropShadowColor: '#000066',
                 dropShadowBlur: 8,
-                dropShadowAngle: Math.PI / 6,
                 dropShadowDistance: 10,
+                letterSpacing: 5,
             }
         });
-        startText.anchor.set(0.5);
-        startText.position.set(this.app.screen.width / 2, this.app.screen.height / 2 - 50);
-        overlay.addChild(startText);
+        titleText.anchor.set(0.5);
+        titleText.position.set(this.app.screen.width / 2, this.app.screen.height / 2 - 100);
+        overlay.addChild(titleText);
 
-        // Create Start button
+        // Add start button with modified click handler
         const startButton = this.createButton('Start Game', this.app.screen.width / 2, this.app.screen.height / 2 + 50, () => {
-            this.hideCurrentScreen();
-            this.game.startGame();
+            console.log('Start button clicked');
+            // Use the gameState reference directly
+            this.gameState.setState(GameState.States.PLAYING);
         });
-
         overlay.addChild(startButton);
-        this.showScreen(overlay);
+
+        overlay.visible = true;
+        return overlay;
     }
 
     /**
-     * Creates and shows the game over screen using PIXI.js
+     * Creates the game over screen container
      */
-    showGameOverScreen() {
+    async createGameOverScreen() {
+        console.log('Creating game over screen...');
         const overlay = this.createOverlay();
 
-        // Add dark rectangle behind text and button
-        const textBg = new PIXI.Graphics();
-        
-        // Draw rectangle with fill and stroke
-        textBg.rect(
-            this.app.screen.width / 2 - 200,
-            this.app.screen.height / 2 - 150,
-            400,
-            250
-        );
-        textBg.fill({ color: 0x000000, alpha: 0.6 });    // Black with 0.6 alpha
-        textBg.stroke(4, 0xFF0000);     // Red stroke, 4px width
+        // Add decorative background rectangle with correct order
+        const bgRect = new PIXI.Graphics()
+            .rect(
+                this.app.screen.width / 2 - 250,
+                this.app.screen.height / 2 - 200,
+                500,
+                400
+            )
+            .fill({ color: 0x330000, alpha: 0.8 })
+            .stroke({ color: 0xff0000, width: 4, alpha: 1 });
 
-        overlay.addChild(textBg);
+        overlay.addChild(bgRect);
 
-        // Create "Game Over!" text with glow effect
+        // Create "Game Over!" text
         const gameOverText = new PIXI.Text({
             text: 'Game Over!',
             style: {
@@ -115,146 +134,76 @@ export class Screens {
                 dropShadow: true,
                 dropShadowColor: '#660000',
                 dropShadowBlur: 8,
-                dropShadowAngle: Math.PI / 6,
                 dropShadowDistance: 10,
+                letterSpacing: 5,
             }
         });
         gameOverText.anchor.set(0.5);
-        gameOverText.position.set(this.app.screen.width / 2, this.app.screen.height / 2 - 50);
+        gameOverText.position.set(this.app.screen.width / 2, this.app.screen.height / 2 - 100);
         overlay.addChild(gameOverText);
 
-        // Create Restart button with space theme
+        // Add restart button with modified click handler
         const restartButton = this.createButton('Play Again', this.app.screen.width / 2, this.app.screen.height / 2 + 50, () => {
+            console.log('Restart button clicked');
             this.hideCurrentScreen();
-            if (this.game?.restartGame) {
-                this.game.restartGame();
-            }
+            // Use the gameState reference to restart
+            this.gameState.setState(GameState.States.PLAYING);
         });
-
         overlay.addChild(restartButton);
-        this.showScreen(overlay);
+
+        overlay.visible = true;
+        return overlay;
     }
 
     /**
-     * Creates a styled button using PIXI.js
+     * Shows the start screen
      */
-    createButton(text, x, y, onClick) {
-        const button = new PIXI.Container();
-        button.interactive = true;
-        button.cursor = 'pointer';
-
-        // Create button background with gradient effect
-        const buttonBg = new PIXI.Graphics();
-        
-        // Main button shape
-        buttonBg.roundRect(-120, -30, 240, 60, 15);
-        buttonBg.fill({ color: 0x4400ff, alpha: 0.8 });
-        buttonBg.stroke(2, 0x6622ff);
-
-        // Add inner glow
-        const innerGlow = new PIXI.Graphics();
-        innerGlow.roundRect(-115, -25, 230, 50, 12);
-        innerGlow.fill(0x6622ff, 0.4);
-
-        // Add outer glow
-        const outerGlow = new PIXI.Graphics();
-        outerGlow.roundRect(-125, -35, 250, 70, 18);
-        outerGlow.fill(0x4400ff, 0.2);
-
-        // Add all layers to button
-        button.addChild(outerGlow);
-        button.addChild(buttonBg);
-        button.addChild(innerGlow);
-
-        // Button text with enhanced glow
-        const buttonText = new PIXI.Text({
-            text: text,
-            style: {
-                fontFamily: 'Arial',
-                fontSize: 28,
-                fill: 0xFFFFFF,
-                align: 'center',
-                dropShadow: true,
-                dropShadowColor: '#000066',
-                dropShadowBlur: 6,
-                dropShadowAngle: Math.PI / 6,
-                dropShadowDistance: 8,
-            }
-        });
-        buttonText.anchor.set(0.5);
-        button.addChild(buttonText);
-
-        button.position.set(x, y);
-
-        // Enhanced hover effects
-        button.on('pointerover', () => {
-            buttonBg.clear();
-            buttonBg.roundRect(-120, -30, 240, 60, 15);
-            buttonBg.fill(0x6622ff, 0.9);
-            buttonBg.stroke(2, 0x8844ff);
-
-            innerGlow.clear();
-            innerGlow.roundRect(-115, -25, 230, 50, 12);
-            innerGlow.fill(0x8844ff, 0.5);
-
-            outerGlow.clear();
-            outerGlow.roundRect(-125, -35, 250, 70, 18);
-            outerGlow.fill(0x6622ff, 0.3);
-
-            button.scale.set(1.05);
-            buttonText.style.dropShadowDistance = 10;
-        });
-
-        button.on('pointerout', () => {
-            buttonBg.clear();
-            buttonBg.roundRect(-120, -30, 240, 60, 15);
-            buttonBg.fill(0x4400ff, 0.8);
-            buttonBg.stroke(2, 0x6622ff);
-
-            innerGlow.clear();
-            innerGlow.roundRect(-115, -25, 230, 50, 12);
-            innerGlow.fill(0x6622ff, 0.4);
-
-            outerGlow.clear();
-            outerGlow.roundRect(-125, -35, 250, 70, 18);
-            outerGlow.fill(0x4400ff, 0.2);
-
-            button.scale.set(1.0);
-            buttonText.style.dropShadowDistance = 8;
-        });
-
-        button.on('pointerdown', () => {
-            button.scale.set(0.95);
-            setTimeout(() => {
-                onClick();
-            }, 100);
-        });
-
-        button.on('pointerup', () => {
-            button.scale.set(1.05);
-        });
-
-        return button;
-    }
-
-    /**
-     * Shows a screen and stores it as current
-     * @private
-     * @param {PIXI.Container} screen - The screen container to show
-     */
-    showScreen(screen) {
+    showStartScreen() {
+        console.log('Showing start screen...');
         this.hideCurrentScreen();
-        this.currentScreen = screen;
+        const startScreen = this.cachedScreens.get('start');
+        if (startScreen) {
+            console.log('Found start screen in cache');
+            startScreen.visible = true;
+            this.currentScreen = startScreen;
+            this.app.stage.addChild(startScreen);
+
+            // Force the screen to be on top
+            startScreen.zIndex = 1000;
+            this.app.stage.sortChildren();
+
+            // Log screen properties
+            console.log('Start screen properties:', {
+                visible: startScreen.visible,
+                zIndex: startScreen.zIndex,
+                position: `${startScreen.x}, ${startScreen.y}`,
+                children: startScreen.children.length
+            });
+        } else {
+            console.error('Start screen not found in cache');
+        }
     }
 
     /**
-     * Hides and removes current screen if exists
-     * @private
+     * Shows the game over screen
+     */
+    showGameOverScreen() {
+        this.hideCurrentScreen();
+        const gameOverScreen = this.cachedScreens.get('gameOver');
+        if (gameOverScreen) {
+            gameOverScreen.visible = true;
+            this.currentScreen = gameOverScreen;
+            this.app.stage.addChild(gameOverScreen);
+        }
+    }
+
+    /**
+     * Hides current screen if exists
      */
     hideCurrentScreen() {
         if (this.currentScreen) {
+            this.currentScreen.visible = false;
             this.app.stage.removeChild(this.currentScreen);
-            this.currentScreen.destroy({ children: true });
             this.currentScreen = null;
         }
     }
@@ -264,5 +213,72 @@ export class Screens {
      */
     destroy() {
         this.hideCurrentScreen();
+        this.cachedScreens.forEach(screen => screen.destroy({ children: true }));
+        this.cachedScreens.clear();
+    }
+
+    /**
+     * Creates an interactive button with hover effects
+     * @private
+     * @param {string} text - Button text
+     * @param {number} x - X position
+     * @param {number} y - Y position
+     * @param {Function} onClick - Click handler
+     * @returns {PIXI.Container} Button container
+     */
+    createButton(text, x, y, onClick) {
+        const button = new PIXI.Container();
+        button.x = x;
+        button.y = y;
+
+        // Create button background with correct order
+        const background = new PIXI.Graphics()
+            .roundRect(-100, -25, 200, 50, 10)
+            .fill({ color: 0x4400ff, alpha: 0.6 })
+            .stroke({ color: 0x6622ff, width: 2, alpha: 0.8 });
+
+        // Create button text
+        const buttonText = new PIXI.Text({
+            text,
+            style: {
+                fontFamily: 'Arial',
+                fontSize: 24,
+                fill: 0xFFFFFF,
+                align: 'center',
+                dropShadow: true,
+                dropShadowColor: '#000033',
+                dropShadowBlur: 4,
+                dropShadowDistance: 2,
+            }
+        });
+        buttonText.anchor.set(0.5);
+
+        // Make button interactive
+        button.eventMode = 'static';
+        button.cursor = 'pointer';
+
+        // Update hover effects
+        button.on('pointerover', () => {
+            background.clear()
+                .roundRect(-100, -25, 200, 50, 10)
+                .fill({ color: 0x6622ff, alpha: 0.8 })
+                .stroke({ color: 0x8844ff, width: 2, alpha: 1 });
+        });
+
+        button.on('pointerout', () => {
+            background.clear()
+                .roundRect(-100, -25, 200, 50, 10)
+                .fill({ color: 0x4400ff, alpha: 0.6 })
+                .stroke({ color: 0x6622ff, width: 2, alpha: 0.8 });
+        });
+
+        // Add click handler
+        button.on('pointertap', onClick);
+
+        // Add elements to button container
+        button.addChild(background);
+        button.addChild(buttonText);
+
+        return button;
     }
 } 

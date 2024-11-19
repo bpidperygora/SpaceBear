@@ -3,6 +3,7 @@ import { Enemy } from './components/Enemy.js';
 import { Hero } from './components/Hero.js';
 import { BoostSystem } from './components/BoostSystem.js';
 import { Screens } from './components/Screens.js';
+import { GameState } from './components/GameState.js';
 
 class Game {
     constructor() {
@@ -10,192 +11,119 @@ class Game {
         this.paused = true;
         this.gameOver = false;
         this.controls = null;
-        this.screens = null;
+        this.gameState = null;
+        this.boostSystem = null;
         this.initGame();
-        this.initGameOverHandler();
-    }
-
-    initGameOverHandler() {
-        window.addEventListener('game-over', () => {
-            if (this.gameOver) return;
-            this.gameOver = true;
-            
-            // Stop the game
-            this.app.ticker.stop();
-            
-            // Show game over screen
-            this.screens.showGameOverScreen();
-        });
-    }
-
-    restartGame() {
-        console.log('=== RESTART GAME CALLED ===');
-        // Reset game state
-        this.gameOver = false;
-        this.paused = false;
-        
-        // Clear console
-        console.clear();
-        
-        console.log('Clearing existing sprites...');
-        // Clear existing sprites
-        this.sprites.forEach(sprite => {
-            if (sprite.destroy) {
-                console.log('Destroying sprite:', sprite);
-                sprite.destroy();
-            }
-        });
-        this.sprites = [];
-        
-        console.log('Reinitializing game...');
-        // Reset positions and reinitialize game
-        this.init().then(hero => {
-            if (hero) {
-                const centerX = this.app.screen.width / 2;
-                const centerY = this.app.screen.height / 2;
-                console.log('Found hero, resetting position to center:', centerX, centerY);
-                hero.resetPosition(centerX, centerY);
-                hero.startAnimation();
-            } else {
-                console.warn('Hero not found after init!');
-            }
-            
-            // Start ticker and dispatch event
-            this.app.ticker.start();
-            window.dispatchEvent(new CustomEvent('game-started'));
-            
-            // Initialize boost system
-            this.boostSystem = new BoostSystem();
-        });
-        
-        console.log('=== RESTART GAME COMPLETE ===');
     }
 
     async initGame() {
         try {
-            // Create application instance without options
+            // Create PIXI application
             this.app = new PIXI.Application();
-            
-            // Initialize with options using init()
             await this.app.init({ 
                 width: Math.max(640, window.innerWidth),
                 height: Math.max(360, window.innerHeight),
                 resizeTo: window,
                 backgroundColor: 0x000033,
             });
-            
-            // Create space background after app is initialized
-            this.createSpaceBackground();
 
-            // Initialize controls without start overlay
-            this.controls = new Controls(this.app, false);
-
-            // Initialize screens
-            this.screens = new Screens(this.app, this);
-
-            // Show start screen instead of creating it directly
-            this.screens.showStartScreen();
-
-            this.app.renderer.resize(Math.max(640, window.innerWidth), Math.max(360, window.innerHeight));
-
-            window.addEventListener('resize', () => {
-                const newWidth = Math.max(640, window.innerWidth);
-                const newHeight = Math.max(360, window.innerHeight);
-                this.app.renderer.resize(newWidth, newHeight);
-                
-                if (this.sprites.length > 0) {
-                    const centerX = newWidth / 2;
-                    const centerY = newHeight / 2;
-                    this.sprites.forEach(sprite => {
-                        sprite.sprite.x = centerX;
-                        sprite.sprite.y = centerY;
-                    });
-                }
-            });
-
+            // Add to DOM
             const gameContainer = document.getElementById('gameContainer');
-            if (gameContainer) {
-                gameContainer.appendChild(this.app.canvas);
-                await this.init();
-                
-                this.app.ticker.stop();
-
-                if (!this.gameStartListenerAdded) {
-                    window.addEventListener('game-started', () => {
-                        this.paused = false;
-                        this.app.ticker.start();
-                        this.boostSystem = new BoostSystem();
-                    });
-                    this.gameStartListenerAdded = true;
-                }
-            } else {
+            if (!gameContainer) {
                 throw new Error('Game container not found');
             }
+            gameContainer.appendChild(this.app.canvas);
+
+            // Create space background
+            this.createSpaceBackground();
+
+            // Initialize game state (which will handle screens)
+            this.gameState = new GameState(this);
+            await this.gameState.initialize(this.app);
+
+            // Initialize controls
+            this.controls = new Controls(this.app, false);
+
+            // Initialize game over handler
+            this.initGameOverHandler();
+
+            // Keep ticker running for UI animations
+            this.app.ticker.start();
+
+            console.log('Game initialization complete');
+
         } catch (error) {
-            console.error('Failed to initialize PIXI application:', error);
+            console.error('Failed to initialize game:', error);
         }
     }
 
-    async init() {
+    initGameOverHandler() {
+        window.addEventListener('game-over', () => {
+            if (this.gameOver) return;
+            this.gameOver = true;
+            this.app.ticker.stop();
+            this.gameState.setState(GameState.States.GAME_OVER);
+        });
+    }
+
+    async startGame() {
         try {
-            const bunnyTexture = await PIXI.Assets.load('https://pixijs.io/examples/examples/assets/bunny.png');
-            const mcTexture = await PIXI.Assets.load('https://pixijs.com/assets/spritesheet/mc.json');
-            
-            console.log('=== GAME INIT ===');
-            // Reset positions to center
+            // Stop the UI ticker temporarily
+            this.app.ticker.stop();
+
+            // Clear any existing sprites
+            this.sprites.forEach(sprite => sprite?.destroy?.());
+            this.sprites = [];
+
+            // Load game assets
+            const [bunnyTexture, mcTexture] = await Promise.all([
+                PIXI.Assets.load('https://pixijs.io/examples/examples/assets/bunny.png'),
+                PIXI.Assets.load('https://pixijs.com/assets/spritesheet/mc.json')
+            ]);
+
+            // Initialize game objects
             const x = this.app.screen.width / 2;
             const y = this.app.screen.height / 2;
-            console.log('Center coordinates - x:', x, 'y:', y);
 
-            const hero = new Hero(
-                this.app,
-                bunnyTexture,
-                x,
-                y
-            );
-
-            console.log('Hero created, forcing position reset');
-            hero.resetPosition(x, y);
-            console.log('Hero position after reset - x:', hero.sprite.x, 'y:', hero.sprite.y);
-
-            const enemy = new Enemy(
-                this.app,
-                bunnyTexture,
-                x,
-                y,
-                hero,
-                this
-            );
+            const hero = new Hero(this.app, bunnyTexture, x, y);
+            const enemy = new Enemy(this.app, bunnyTexture, x, y, hero, this);
 
             this.app.stage.addChild(enemy.container);
             this.app.stage.addChild(hero.sprite);
 
             this.sprites.push(enemy, hero);
-            
-            console.log('=== GAME INIT COMPLETE ===');
-            console.log('Final hero position - x:', hero.sprite.x, 'y:', hero.sprite.y);
 
-            return hero;
+            // Initialize boost system
+            if (this.boostSystem) {
+                this.boostSystem.destroy();
+            }
+            this.boostSystem = new BoostSystem();
+
+            // Start the game
+            this.paused = false;
+            this.gameOver = false;
+            this.app.ticker.start();
+            
+            // Dispatch game started event
+            window.dispatchEvent(new CustomEvent('game-started'));
+
         } catch (error) {
-            console.error('Failed to initialize game components:', error);
+            console.error('Failed to start game:', error);
         }
     }
 
-    startGame() {
-        this.paused = false;
-        this.app.ticker.start();
-        // This is the ONLY place we should dispatch game-started
-        window.dispatchEvent(new CustomEvent('game-started'));
+    restartGame() {
+        this.gameState.setState(GameState.States.PLAYING);
     }
 
     createSpaceBackground() {
         // Create a starfield background
         const stars = new PIXI.Container();
         
-        // Add dark background
-        const background = new PIXI.Graphics();
-        background.fill({ color: 0x000033, alpha: 1 })
-                 .rect(0, 0, this.app.screen.width, this.app.screen.height);
+        // Add dark background with correct PIXI v8 syntax
+        const background = new PIXI.Graphics()
+            .rect(0, 0, this.app.screen.width, this.app.screen.height)
+            .fill({ color: 0x000033, alpha: 1 });
         stars.addChild(background);
 
         // Create star container
@@ -214,7 +142,7 @@ class Game {
             });
         }
 
-        // Add nebula effect
+        // Add nebula effect with correct PIXI v8 syntax
         const nebula = new PIXI.Graphics();
         for (let i = 0; i < 5; i++) {
             const x = Math.random() * this.app.screen.width;
@@ -222,8 +150,9 @@ class Game {
             const radius = 100 + Math.random() * 150;
             const color = [0x4400ff, 0xff00ff, 0x00ffff][Math.floor(Math.random() * 3)];
             
-            nebula.fill({ color, alpha: 0.1 })
-                 .circle(x, y, radius);
+            nebula
+                .circle(x, y, radius)
+                .fill({ color, alpha: 0.1 });
         }
         stars.addChild(nebula);
         
@@ -232,7 +161,7 @@ class Game {
         this.app.stage.sortableChildren = true;
         this.app.stage.addChild(stars);
         
-        // Animate stars
+        // Animate stars with correct PIXI v8 syntax
         this.app.ticker.add(() => {
             starsGraphics.clear();
             
@@ -248,13 +177,15 @@ class Game {
                 
                 // Draw star with current position and twinkle effect
                 const twinkle = 0.3 + Math.sin(Date.now() * 0.001 + star.x) * 0.2;
-                starsGraphics.fill({ color: 0xFFFFFF, alpha: star.alpha * twinkle })
-                            .circle(star.x, star.y, star.size);
+                starsGraphics
+                    .circle(star.x, star.y, star.size)
+                    .fill({ color: 0xFFFFFF, alpha: star.alpha * twinkle });
             });
         });
     }
 }
 
+// Initialize game when window loads
 window.addEventListener('load', () => {
     new Game();
 }); 
