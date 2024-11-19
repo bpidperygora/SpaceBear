@@ -16,21 +16,13 @@ export class Screens {
      * Preload all screen assets and cache screens
      */
     async preloadAssets() {
-        console.log('Preloading screen assets...');
-
         try {
-            // Create and cache start screen
             const startScreen = await this.createStartScreen();
             this.cachedScreens.set('start', startScreen);
-            console.log('Start screen cached');
 
-            // Create and cache game over screen
             const gameOverScreen = await this.createGameOverScreen();
             this.cachedScreens.set('gameOver', gameOverScreen);
-            console.log('Game over screen cached');
-
         } catch (error) {
-            console.error('Error preloading screen assets:', error);
         }
     }
 
@@ -56,7 +48,6 @@ export class Screens {
      * Creates the start screen container
      */
     async createStartScreen() {
-        console.log('Creating start screen...');
         const overlay = this.createOverlay();
 
         // Add decorative background rectangle with correct order
@@ -93,8 +84,6 @@ export class Screens {
 
         // Add start button with modified click handler
         const startButton = this.createButton('Start Game', this.app.screen.width / 2, this.app.screen.height / 2 + 50, () => {
-            console.log('Start button clicked');
-            // Use the gameState reference directly
             this.gameState.setState(GameState.States.PLAYING);
         });
         overlay.addChild(startButton);
@@ -107,7 +96,6 @@ export class Screens {
      * Creates the game over screen container
      */
     async createGameOverScreen() {
-        console.log('Creating game over screen...');
         const overlay = this.createOverlay();
 
         // Add decorative background rectangle with correct order
@@ -144,9 +132,7 @@ export class Screens {
 
         // Add restart button with modified click handler
         const restartButton = this.createButton('Play Again', this.app.screen.width / 2, this.app.screen.height / 2 + 50, () => {
-            console.log('Restart button clicked');
             this.hideCurrentScreen();
-            // Use the gameState reference to restart
             this.gameState.setState(GameState.States.PLAYING);
         });
         overlay.addChild(restartButton);
@@ -159,28 +145,14 @@ export class Screens {
      * Shows the start screen
      */
     showStartScreen() {
-        console.log('Showing start screen...');
         this.hideCurrentScreen();
         const startScreen = this.cachedScreens.get('start');
         if (startScreen) {
-            console.log('Found start screen in cache');
             startScreen.visible = true;
             this.currentScreen = startScreen;
             this.app.stage.addChild(startScreen);
-
-            // Force the screen to be on top
             startScreen.zIndex = 1000;
             this.app.stage.sortChildren();
-
-            // Log screen properties
-            console.log('Start screen properties:', {
-                visible: startScreen.visible,
-                zIndex: startScreen.zIndex,
-                position: `${startScreen.x}, ${startScreen.y}`,
-                children: startScreen.children.length
-            });
-        } else {
-            console.error('Start screen not found in cache');
         }
     }
 

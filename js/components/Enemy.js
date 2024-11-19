@@ -40,22 +40,26 @@ export class Enemy {
         // Bind methods
         this.boundTrack = this.track.bind(this);
         this.handleGameStart = () => {
-            console.log('=== GAME STARTED ===');
-            console.log('Event listener triggered!');
-            console.log('Current ticker time:', this.app.ticker.lastTime);
             this.gameStarted = true;
             this.initialShot = true;
             this.nextShootTime = this.app.ticker.lastTime + 3000;
-            console.log('Next shoot time set to:', this.nextShootTime);
             this.asteroids = [];
         };
         
         // Add event listeners
         window.addEventListener('game-started', this.handleGameStart);
-        console.log('Added game-started event listener');
         this.app.ticker.add(this.boundTrack);
         
-        console.log('Enemy constructed, waiting for game-started event');
+        // Listen for asteroid destruction
+        this.container.on('asteroid-destroyed', () => {
+            this.game.updateScore(1);
+        });
+        
+        // Add plasma charge circle
+        this.chargeCircle = new PIXI.Graphics();
+        this.container.addChild(this.chargeCircle);
+        
+        this.chargeProgress = 0;
     }
 
     createSimpleFlames() {
@@ -96,12 +100,8 @@ export class Enemy {
     }
 
     shootAsteroid() {
-        if (!this.gameStarted) {
-            console.log('Attempted to shoot but game not started');
-            return;
-        }
+        if (!this.gameStarted) return;
         
-        console.log('=== SHOOTING ASTEROID ===');
         const size = 10 + Math.random() * 20;
         const asteroid = new Asteroid(
             this.app,
@@ -113,9 +113,16 @@ export class Enemy {
         );
         this.asteroids.push(asteroid);
         
-        // Set next shoot time (7-14 seconds)
-        this.nextShootTime = this.app.ticker.lastTime + 7000 + Math.random() * 7000;
-        console.log('Next shoot time updated to:', this.nextShootTime);
+        // Add asteroid to game's array
+        if (this.game) {
+            this.game.addAsteroid(asteroid);
+        }
+        
+        if (this.game && typeof this.game.updateScore === 'function') {
+            this.game.updateScore(1);
+        }
+        
+        this.nextShootTime = this.app.ticker.lastTime + 3000 + Math.random() * 4000;
     }
 
     track() {
@@ -150,31 +157,32 @@ export class Enemy {
             const currentTime = this.app.ticker.lastTime;
             const timeToShoot = this.nextShootTime - currentTime;
             
-            // Log timing every second (to avoid console spam)
-            if (Math.floor(currentTime / 1000) !== Math.floor((currentTime - 16) / 1000)) {
-                console.log('=== TIMING UPDATE ===');
-                console.log('Game started:', this.gameStarted);
-                console.log('Current time:', currentTime);
-                console.log('Next shoot time:', this.nextShootTime);
-                console.log('Time to shoot:', timeToShoot);
-                console.log('Initial shot:', this.initialShot);
-            }
-
-            // Warning animation
+            // Warning animation with plasma charge circle
             if (timeToShoot < 2000) {
                 const progress = Math.max(0, Math.min(1, 1 - (timeToShoot / 2000)));
                 this.sprite.tint = this.lerpColor(this.originalTint, 0xFFFFFF, progress);
-                console.log('Warning animation progress:', progress);
+                
+                // Update charge circle
+                this.chargeCircle.clear()
+                    .circle(0, 0, 50 + progress * 10)
+                    .stroke({ 
+                        color: 0x00ffff,
+                        width: 3,
+                        alpha: progress * 0.5
+                    });
+                
+                // Add pulsing effect
+                const pulseScale = 1 + Math.sin(currentTime * 0.01) * 0.1 * progress;
+                this.chargeCircle.scale.set(pulseScale);
             } else {
                 this.sprite.tint = this.originalTint;
+                this.chargeCircle.clear(); // Remove charge circle
             }
 
             // Shoot if it's time
             if (currentTime >= this.nextShootTime) {
-                console.log('SHOOT CONDITION MET!');
-                console.log('Current time:', currentTime);
-                console.log('Next shoot time:', this.nextShootTime);
                 this.shootAsteroid();
+                this.chargeCircle.clear(); // Remove charge circle after shooting
             }
 
             // Update asteroids and check collisions
@@ -183,6 +191,10 @@ export class Enemy {
                 if (asteroid.update()) {
                     asteroid.destroy();
                     this.asteroids.splice(i, 1);
+                    
+                    if (this.game && typeof this.game.updateScore === 'function') {
+                        this.game.updateScore(1);
+                    }
                     continue;
                 }
 
@@ -226,7 +238,7 @@ export class Enemy {
 
     // Add collision detection method
     checkCollision(asteroid, hero) {
-        if (!hero.sprite || !asteroid.sprite) return false; // Add null checks
+        if (!hero.sprite || !asteroid.sprite) return false;
         
         const dx = asteroid.sprite.x - hero.sprite.x;
         const dy = asteroid.sprite.y - hero.sprite.y;

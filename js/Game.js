@@ -2,17 +2,19 @@ import { Controls } from './components/Controls.js';
 import { Enemy } from './components/Enemy.js';
 import { Hero } from './components/Hero.js';
 import { BoostSystem } from './components/BoostSystem.js';
-import { Screens } from './components/Screens.js';
 import { GameState } from './components/GameState.js';
+import { ScoreDisplay } from './components/ScoreDisplay.js';
 
 class Game {
     constructor() {
         this.sprites = [];
+        this.asteroids = [];
         this.paused = true;
         this.gameOver = false;
         this.controls = null;
         this.gameState = null;
         this.boostSystem = null;
+        this.scoreDisplay = null;
         this.initGame();
     }
 
@@ -50,10 +52,8 @@ class Game {
             // Keep ticker running for UI animations
             this.app.ticker.start();
 
-            console.log('Game initialization complete');
-
         } catch (error) {
-            console.error('Failed to initialize game:', error);
+            // Keep error handling but remove console
         }
     }
 
@@ -85,8 +85,16 @@ class Game {
             const x = this.app.screen.width / 2;
             const y = this.app.screen.height / 2;
 
-            const hero = new Hero(this.app, bunnyTexture, x, y);
+            const hero = new Hero(this.app, bunnyTexture, x, y, this);
             const enemy = new Enemy(this.app, bunnyTexture, x, y, hero, this);
+
+            // Reset score before adding event listener
+            this.score = 0;
+            if (this.scoreDisplay) {
+                this.scoreDisplay.destroy();
+            }
+            this.scoreDisplay = new ScoreDisplay();
+            this.scoreDisplay.updateScore(this.score);
 
             this.app.stage.addChild(enemy.container);
             this.app.stage.addChild(hero.sprite);
@@ -108,7 +116,7 @@ class Game {
             window.dispatchEvent(new CustomEvent('game-started'));
 
         } catch (error) {
-            console.error('Failed to start game:', error);
+            // Keep error handling but remove console
         }
     }
 
@@ -182,6 +190,44 @@ class Game {
                     .fill({ color: 0xFFFFFF, alpha: star.alpha * twinkle });
             });
         });
+    }
+
+    // Update score method
+    updateScore(amount) {
+        this.score += amount;
+        if (this.scoreDisplay) {
+            this.scoreDisplay.updateScore(this.score);
+        }
+    }
+
+    // Update destroy/cleanup
+    destroy() {
+        if (this.scoreDisplay) {
+            this.scoreDisplay.destroy();
+        }
+        if (this.boostSystem) {
+            this.boostSystem.destroy();
+        }
+        if (this.gameState) {
+            this.gameState.destroy();
+        }
+        if (this.controls) {
+            this.controls.destroy();
+        }
+        if (this.app) {
+            this.app.destroy(true);
+        }
+    }
+
+    addAsteroid(asteroid) {
+        this.asteroids.push(asteroid);
+    }
+
+    removeAsteroid(asteroid) {
+        const index = this.asteroids.indexOf(asteroid);
+        if (index > -1) {
+            this.asteroids.splice(index, 1);
+        }
     }
 }
 

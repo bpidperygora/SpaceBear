@@ -20,19 +20,22 @@ export class Controls {
             position: fixed;
             bottom: 50px;
             left: 20px;
-            background: rgba(0, 0, 0, 0.7);
+            background: rgba(0, 0, 0, 0.3);
             padding: 15px;
             border-radius: 8px;
             color: white;
             font-family: Arial;
             font-size: 12px;
             z-index: 1000;
+            pointer-events: none;
         `;
         
         instructions.innerHTML = `
-            <div style="margin-bottom: 5px"><strong>Boost Controls:</strong></div>
-            <div>Hold SPACE: 13x speed + trail</div>
-            <div>Double SPACE: 20x speed (5s or until released)</div>
+            <div style="margin-bottom: 10px"><strong>Controls:</strong></div>
+            <div style="margin-bottom: 5px">Hold SPACE: 13x speed + trail</div>
+            <div style="margin-bottom: 5px">Double SPACE: 20x speed (5s or until released)</div>
+            <div style="margin-bottom: 5px">Hold ALT: Slow motion</div>
+            <div style="margin-bottom: 5px">ENTER: Shoot plasma</div>
         `;
         
         document.body.appendChild(instructions);

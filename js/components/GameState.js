@@ -27,15 +27,12 @@ export class GameState {
         if (this.initialized) return;
         
         try {
-            // Create and initialize screens
             this.screens = new Screens(app, this);
             await this.screens.preloadAssets();
-            
-            // Set initial state after screens are ready
             this.setState(GameState.States.START_SCREEN);
             this.initialized = true;
         } catch (error) {
-            console.error('Failed to initialize game state:', error);
+            // Keep error handling but remove console
         }
     }
 

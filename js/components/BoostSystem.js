@@ -8,6 +8,7 @@ export class BoostSystem {
         NORMAL_SPEED: 5,
         BOOST_SPEED: 10,
         SUPER_BOOST_SPEED: 20,
+        SLOW_MOTION_SPEED: 2.5,
         MAX_FUEL: 100,
         MIN_FUEL_FOR_SUPER: 30,
         DOUBLE_TAP_THRESHOLD: 300,
@@ -46,6 +47,7 @@ export class BoostSystem {
         this.normalSpeed = BoostSystem.BOOST_CONFIG.NORMAL_SPEED;
         this.boostSpeed = BoostSystem.BOOST_CONFIG.BOOST_SPEED;
         this.superBoostSpeed = BoostSystem.BOOST_CONFIG.SUPER_BOOST_SPEED;
+        this.isSlowMotion = false;
 
         // Bind event handlers
         this.handleKeyDown = this.handleKeyDown.bind(this);
@@ -80,6 +82,14 @@ export class BoostSystem {
             
             this.lastSpacePress = currentTime;
         }
+        // Add Alt key handler for slow motion
+        else if (e.code === 'AltLeft' && !this.isSlowMotion) {
+            e.preventDefault(); // Prevent browser's default Alt behavior
+            this.isSlowMotion = true;
+            window.dispatchEvent(new CustomEvent('speed-change', { 
+                detail: BoostSystem.BOOST_CONFIG.SLOW_MOTION_SPEED 
+            }));
+        }
     }
 
     handleKeyUp(e) {
@@ -90,6 +100,13 @@ export class BoostSystem {
             } else {
                 this.toggleBoost(false);
             }
+        }
+        // Add Alt key up handler
+        else if (e.code === 'AltLeft' && this.isSlowMotion) {
+            this.isSlowMotion = false;
+            window.dispatchEvent(new CustomEvent('speed-change', { 
+                detail: this.normalSpeed 
+            }));
         }
     }
 

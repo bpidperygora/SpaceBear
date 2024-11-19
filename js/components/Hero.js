@@ -1,6 +1,7 @@
 import { ExplosionEffect } from './ExplosionEffect.js';
 import { ParticleTrail } from './ParticleTrail.js';
 import { SoundManager } from './SoundManager.js';
+import { PlasmaSystem } from './PlasmaSystem.js';
 
 /**
  * Class representing a sprite that bounces around the screen
@@ -8,7 +9,7 @@ import { SoundManager } from './SoundManager.js';
  */
 export class Hero {
 
-    constructor(app, texture, x, y) {
+    constructor(app, texture, x, y, game) {
         this.app = app;
         this.sprite = new PIXI.Sprite(texture);
         
@@ -69,6 +70,11 @@ export class Hero {
         window.addEventListener('game-over', () => this.onGameOver());
         
         this.resetPosition(x, y);
+        
+        // Initialize plasma system
+        this.plasmaSystem = new PlasmaSystem(app, this);
+
+        this.game = game;
     }
 
     startAnimation() {
@@ -123,6 +129,9 @@ export class Hero {
             this.velocityY *= -1;
             this.soundManager.play('bounce');
         }
+        
+        // Update plasma system
+        this.plasmaSystem.update();
     }
 
     /**
@@ -145,6 +154,10 @@ export class Hero {
         if (this.sprite) {
             this.sprite.destroy();
             this.sprite = null; // Ensure sprite reference is cleared
+        }
+        
+        if (this.plasmaSystem) {
+            this.plasmaSystem.destroy();
         }
     }
 

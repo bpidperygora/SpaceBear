@@ -1,6 +1,8 @@
 export class Asteroid {
     constructor(app, startX, startY, targetX, targetY, size) {
         this.app = app;
+        this.name = 'asteroid';
+        this.destroyed = false;
         
         // Create asteroid graphics
         this.sprite = new PIXI.Graphics();
@@ -37,9 +39,13 @@ export class Asteroid {
         this.size = size;
         
         app.stage.addChild(this.sprite);
+        this.dodged = false;
     }
 
     update() {
+        // Skip update if asteroid is destroyed
+        if (this.destroyed || !this.sprite) return false;
+
         // Update position
         this.sprite.x += this.vx;
         this.sprite.y += this.vy;
@@ -53,18 +59,18 @@ export class Asteroid {
         // Bounce off edges
         if (this.sprite.x < margin) {
             this.sprite.x = margin;
-            this.vx = Math.abs(this.vx); // Bounce right
+            this.vx = Math.abs(this.vx);
         } else if (this.sprite.x > screenWidth - margin) {
             this.sprite.x = screenWidth - margin;
-            this.vx = -Math.abs(this.vx); // Bounce left
+            this.vx = -Math.abs(this.vx);
         }
 
         if (this.sprite.y < margin) {
             this.sprite.y = margin;
-            this.vy = Math.abs(this.vy); // Bounce down
+            this.vy = Math.abs(this.vy);
         } else if (this.sprite.y > screenHeight - margin) {
             this.sprite.y = screenHeight - margin;
-            this.vy = -Math.abs(this.vy); // Bounce up
+            this.vy = -Math.abs(this.vy);
         }
 
         // Add slight random variation to velocity after bounce
@@ -84,10 +90,15 @@ export class Asteroid {
             this.vy = (this.vy / currentSpeed) * this.speed;
         }
 
-        return false; // Never remove the asteroid
+        return false;
     }
 
     destroy() {
-        this.sprite.destroy();
+        if (!this.destroyed && this.sprite) {
+            this.app.stage.removeChild(this.sprite);
+            this.sprite.destroy();
+            this.sprite = null;
+            this.destroyed = true;
+        }
     }
 } 
